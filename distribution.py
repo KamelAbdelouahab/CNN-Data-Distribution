@@ -59,6 +59,7 @@ plt.hist(conv_layer_data,
 plt.gca().set_xscale('log', basex=XBASE)
 plt.gca().set_yscale('log', basey=YBASE)
 plt.legend(loc='upper right')
+plt.grid(linestyle='dotted')
 plt.show()
 
 
@@ -73,8 +74,9 @@ bins = np.append(-2 ** power_array_neg[::-1], 2 ** power_array_pos)
 plt.hist([all_conv_data, all_conv_param],
          bins=bins,
 		 label=['Activations', 'Weights'],
-		 )
+		 alpha=0.8)
 plt.gca().set_xscale('symlog', basex=XBASE)
 plt.gca().set_yscale('log', basey=YBASE)
 plt.legend(loc='upper right')
+plt.grid(linestyle='dotted')
 plt.show()
