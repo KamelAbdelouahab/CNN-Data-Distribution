@@ -52,6 +52,7 @@ MIN_VALUE, MAX_VALUE = 0, 2.0**10                         # Range of values
 bins = 2 ** np.linspace(0,                                      # Min value
                         np.log2(MAX_VALUE),                     # Max value
 						np.log2(MAX_VALUE)+1)               #number of bins
+plt.figure(figsize=(10,3))
 plt.hist(conv_layer_data,
          bins=bins,
 		 label=conv_layer_name,
@@ -71,6 +72,7 @@ all_conv_param = np.concatenate(conv_layer_param).ravel()
 power_array_pos = np.linspace(-3,10,14)
 power_array_neg = np.linspace(-3,0,4)
 bins = np.append(-2 ** power_array_neg[::-1], 2 ** power_array_pos)
+plt.figure(figsize=(10,3))
 plt.hist([all_conv_data, all_conv_param],
          bins=bins,
 		 label=['Activations', 'Weights'],
