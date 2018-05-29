@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+# Kamel ABDELOUAHAB
+# DREAM - Institut Pascal - Universite Clermont Auvergne
+# Last update : 29-05-2018
+# distribution.py : Plots the ditribution of CNN activations
+
 import os
 import sys
 import io
@@ -15,8 +20,8 @@ sys.path.insert(0, CAFFE_PYTHON_LIB)
 os.environ['GLOG_minloglevel'] = '2'         # Supresses Display on console
 import caffe;
 
-
-proto_file = "/home/kamel/dev/nets/alexnet_eval.prototxt"
+# Replace with Path to proto and modelfile
+proto_file = "/home/kamel/dev/nets/alexnet_eval.prototxt" 
 model_file = "/home/kamel/dev/nets/alexnet.caffemodel"
 net = caffe.Net(proto_file,1,weights=model_file)
 net.forward()
@@ -51,7 +56,7 @@ XBASE, YBASE = 2, 10                                        # Log base used
 MIN_VALUE, MAX_VALUE = 0, 2.0**10                         # Range of values
 bins = 2 ** np.linspace(0,                                      # Min value
                         np.log2(MAX_VALUE),                     # Max value
-						np.log2(MAX_VALUE)+1)               #number of bins
+			np.log2(MAX_VALUE)+1)               #number of bins
 plt.figure(figsize=(10,3))
 plt.hist(conv_layer_data,
          bins=bins,
