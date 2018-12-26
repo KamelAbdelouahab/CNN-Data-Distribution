@@ -13,20 +13,23 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+import matplotlib.font_manager
 params = {
     'grid.color' : 'k',
     'grid.linestyle': 'dashdot',
     'grid.linewidth': 0.6,
-    'font.family': 'Linux Biolinum O',
-    'axes.labelsize': 8,
-    'font.size': 8,
-    'legend.fontsize': 15,
-    'xtick.labelsize': 15,
-    'ytick.labelsize': 15,
+    'font.family': 'Garamond',
+    'axes.labelsize': 16,
+    'font.size': 16,
+    'legend.fontsize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
     'axes.facecolor' : 'white'
    }
 rcParams.update(params)
 
+def computeWeights(array):
+    return(np.ones_like(array)/float(len(array)))
 
 def quantizeArray(float_weight,bitwidth=8):
     scale_factor = 2**(bitwidth-1) - 1
@@ -47,8 +50,8 @@ os.environ['GLOG_minloglevel'] = '2'                         # Supresses Display
 import caffe;
 
 # Replace with Path to proto and modelfile
-proto_file = "/home/kamel/Seafile/CNN-Models/alexnet.prototxt"
-model_file = "/home/kamel/Seafile/CNN-Models/alexnet.caffemodel"
+proto_file = "C:/Users/Kamel/Seafile/CNN-Models/alexnet_no_relu.prototxt"
+model_file = "C:/Users/Kamel/Seafile/CNN-Models/alexnet.caffemodel"
 image = caffe.io.load_image("./cat.jpg")
 hist1_pdf = "./act_hist.pdf"
 hist2_pdf = "./param_hist.pdf"
@@ -59,7 +62,7 @@ transformer = caffe.io.Transformer({'data': net.blobs['data'].data.shape})
 transformer.set_transpose('data', (2,0,1))     # move image channels to outermost dimension
 #transformer.set_raw_scale('data', 255)                    # rescale from [0, 1] to [0, 255]
 transformer.set_channel_swap('data', (2,1,0))               # swap channels from RGB to BGR
-net.blobs['data'].reshape(50, 3, 227, 227)
+net.blobs['data'].reshape(1, 3, 227, 227)
 transformed_image = transformer.preprocess('data', image)
 net.blobs['data'].data[...] = transformed_image
 net.forward()
@@ -72,68 +75,70 @@ fc_layer_name = []
 fc_layer_data = []
 fc_layer_param = []
 
-data = net.blobs['data'].data.ravel()
-conv1 = net.blobs['conv1'].data.ravel()
-conv5 = net.blobs['conv4'].data.ravel()
+data =  np.abs(net.blobs['data'].data.ravel())
+conv1 = np.abs(net.blobs['conv1'].data.ravel())
+conv2 = np.abs(net.blobs['conv2'].data.ravel())
+conv3 = np.abs(net.blobs['conv3'].data.ravel())
+conv4 = np.abs(net.blobs['conv4'].data.ravel())
+conv5 = np.abs(net.blobs['conv5'].data.ravel())
+#conv = np.concatenate((conv1, conv2, conv3, conv4, conv5), axis=None)
+#conv = conv3
 
-#for l in net._layer_names:
-    #layer_id = list(net._layer_names).index(l)
-    #layer_type =  net.layers[layer_id].type
-    #if (layer_type == 'Convolution'):
-        #conv_layer_name.append(l)
-        #this_layer_data = net.blobs[l].data.ravel()
-        #this_layer_param = net.params[l][0].data.ravel()
-        #conv_layer_data.append(this_layer_data)
-        #conv_layer_param.append(this_layer_param)
-    #if (layer_type == 'InnerProduct'):
-        #fc_layer_name.append(l)
-        #this_layer_data = net.blobs[l].data.ravel()
-        #this_layer_param = net.params[l][0].data.ravel()
-        #fc_layer_data.append(this_layer_data)
-        #fc_layer_param.append(this_layer_param)
+min_pow2 = -7
+max_pow2 = 7
 
-#m = np.max(len(conv_layer_data[0]))
-#for i in range(len(conv_layer_data)):
-    #if len(conv_layer_data[i]) > m:
-        #m = np.max(len(conv_layer_data[i]))
+data[np.where(data<2**min_pow2)] = 2**min_pow2
+conv1[np.where(conv1<2**min_pow2)] = 2**min_pow2
+conv5[np.where(conv5<2**min_pow2)] = 2**min_pow2
 
-#np_conv_data = np.empty([len(conv_layer_data), m],dtype=int)
-#for i in range(len(conv_layer_data)):
-    #np_conv_data[i,0:len(conv_layer_data[i])] = conv_layer_data[i]
-#np_conv_data = quantizeArray(np_conv_data,8)
-#XBASE, YBASE = 2, 10                                        # Log base used
 
-# # Histogram 1: Conv data layer per layer                       # Range of values
-#bins = 2 ** np.linspace(-2,              # Min value
-                        #12,              # Max value
-                        #14)              # number of bins
-                        
-logbins = np.logspace(-5, 6, 12, base=2)
 
+nb_pts = max_pow2 - min_pow2 + 1
+logbins = np.logspace(min_pow2, max_pow2, nb_pts, base=2)
 
 plt.figure(figsize=(15,3))
-plt.hist(conv5,
+plt.hist([data, conv1, conv5],
         bins=logbins,
-        density=True,
-        color='red',
-        #stacked=True,
-        alpha=0.8)    
+        normed=0,
+        weights=[computeWeights(data), computeWeights(conv1), computeWeights(conv5)],
+        color=['red', 'blue', 'green'],
+        stacked=False,
+        label=['data', 'conv1', 'conv5'],
+        alpha=0.8)
 plt.gca().set_xscale('log', basex=2)
-plt.legend(loc='upper right')
+plt.legend(loc='upper left')
 plt.grid(linestyle='dotted')
-plt.show()
+plt.xlabel('Data Range')
+plt.ylabel('Normalized Density')
+plt.savefig(hist1_pdf, bbox_inches ='tight')
+# plt.show()
 
-plt.figure(figsize=(15,3))
-plt.hist(data,
-        bins=logbins,
-        density=True,
-        color='blue',
-        #stacked=True,
-        alpha=0.8)      
-plt.gca().set_xscale('log', basex=2)
-plt.legend(loc='upper right')
-plt.grid(linestyle='dotted')
-plt.show()
+
+# plt.figure(figsize=(15,3))
+# plt.hist([data, conv],
+#         bins=logbins,
+#         normed=0,
+#         weights=[computeWeights(data) ,computeWeights(conv)],
+#         color=['red', 'blue'],
+#         stacked=True,
+#         alpha=0.8)
+# plt.gca().set_xscale('log', basex=2)
+# plt.legend(loc='upper right')
+# plt.grid(linestyle='dotted')
+# plt.show()
+
+
+# plt.figure(figsize=(15,3))
+# plt.hist(data,
+#         bins=logbins,
+#         normed=True,
+#         color='blue',
+#         #stacked=True,
+#         alpha=0.8)
+# plt.gca().set_xscale('log', basex=2)
+# plt.legend(loc='upper right')
+# plt.grid(linestyle='dotted')
+# plt.show()
 #plt.savefig(hist1_pdf, bbox_inches ='tight')
 ## Histogram 2: conv data vs conv param
 #MIN_VALUE, MAX_VALUE = -2.0**8, 2.0**8                  # Range of values
@@ -159,8 +164,8 @@ plt.show()
 ## Histogram 3: weights Alexnet vs weights Alexnet_compressed
 #alexnet_layer_param = []
 #alexnet_compressed_layer_param = []
-#proto_file = "/home/kamel/Seafile/CNN-Models/alexnet.prototxt"
-#model_file = "/home/kamel/Seafile/CNN-Models/alexnet.caffemodel"
+#proto_file = "C:/Users/Kamel/Seafile/CNN-Models/alexnet.prototxt"
+#model_file = "C:/Users/Kamel/Seafile/CNN-Models/alexnet.caffemodel"
 #alexnet = caffe.Net(proto_file,1,weights=model_file)
 #for l in alexnet._layer_names:
     #layer_id = list(alexnet._layer_names).index(l)
@@ -169,8 +174,8 @@ plt.show()
         #this_layer_param = alexnet.params[l][0].data.ravel()
         #alexnet_layer_param.append(this_layer_param)
 
-#proto_file = "/home/kamel/Seafile/CNN-Models/alexnet_compressed.prototxt"
-#model_file = "/home/kamel/Seafile/CNN-Models/alexnet_compressed.caffemodel"
+#proto_file = "C:/Users/Kamel/Seafile/CNN-Models/alexnet_compressed.prototxt"
+#model_file = "C:/Users/Kamel/Seafile/CNN-Models/alexnet_compressed.caffemodel"
 #alexnet_compressed = caffe.Net(proto_file,1,weights=model_file)
 #for l in alexnet_compressed._layer_names:
     #layer_id = list(alexnet_compressed._layer_names).index(l)
